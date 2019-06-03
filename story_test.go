@@ -199,7 +199,7 @@ func TestExtendedSequences(t *testing.T) {
 				_F_Q_query,
 				_F_B_bind,
 				_F_S_sync,
-				_B_E_errorResponse,
+				_B_Z_readyForQuery,
 			),
 		},
 		{
@@ -226,6 +226,8 @@ func TestExtendedSequences(t *testing.T) {
 				_F_P_parseNamed,
 				_F_Q_query,
 				_B_1_parseComplete,
+				_B_T_rowDescription,
+				_B_D_dataRow,
 				_B_C_commandComplete,
 				_B_Z_readyForQuery,
 				_F_B_bindNamedStmt,
