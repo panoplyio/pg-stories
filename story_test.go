@@ -92,6 +92,20 @@ func TestExtendedSequences(t *testing.T) {
 		}}
 	}
 
+	F_D_DescribeStmt := func(stmtName string) *Command {
+		return &Command{&pgproto3.Describe{
+			ObjectType: 'S',
+			Name:       stmtName,
+		}}
+	}
+
+	F_D_DescribePortal := func(portalName string) *Command {
+		return &Command{&pgproto3.Describe{
+			ObjectType: 'P',
+			Name:       portalName,
+		}}
+	}
+
 	B_1_ParseComplete := &Response{&pgproto3.ParseComplete{}}
 
 	B_2_BindComplete := &Response{&pgproto3.BindComplete{}}
@@ -99,6 +113,8 @@ func TestExtendedSequences(t *testing.T) {
 	B_Z_ReadyForQuery := &Response{&pgproto3.ReadyForQuery{}}
 
 	B_T_RowDescription := &Response{&pgproto3.RowDescription{}}
+
+	B_t_ParameterDescription := &Response{&pgproto3.ParameterDescription{}}
 
 	B_D_DataRow := &Response{&pgproto3.DataRow{}}
 
@@ -123,15 +139,20 @@ func TestExtendedSequences(t *testing.T) {
 			Steps: append(
 				startupSeq(),
 				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
+				F_D_DescribeStmt(UnnamedStmt),
 				F_S_Sync,
 				B_1_ParseComplete,
+				B_t_ParameterDescription,
+				B_T_RowDescription,
 				B_Z_ReadyForQuery,
 				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_D_DescribePortal(UnnamedPortal),
 				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
 				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
 				F_E_Execute(UnnamedPortal, 0),
 				F_S_Sync,
 				B_2_BindComplete,
+				B_T_RowDescription,
 				B_1_ParseComplete,
 				B_2_BindComplete,
 				B_D_DataRow,
@@ -224,9 +245,12 @@ func TestExtendedSequences(t *testing.T) {
 				B_D_DataRow,
 				B_C_CommandComplete,
 				B_Z_ReadyForQuery,
+				F_D_DescribeStmt(NamedStmt),
 				F_B_Bind(NamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
 				F_E_Execute(UnnamedPortal, 0),
 				F_S_Sync,
+				B_t_ParameterDescription,
+				B_T_RowDescription,
 				B_2_BindComplete,
 				B_D_DataRow,
 				B_C_CommandComplete,
