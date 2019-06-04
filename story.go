@@ -25,6 +25,23 @@ type Response struct {
 
 func (r *Response) Step() {}
 
+func (r *Response) Compare(msg pgproto3.BackendMessage) error {
+	if reflect.TypeOf(msg) != reflect.TypeOf(r.BackendMessage) {
+		return fmt.Errorf("wrong type of message. expected: %T. got %T", r.BackendMessage, msg)
+	}
+
+	switch r.BackendMessage.(type) {
+	case *pgproto3.ErrorResponse:
+		expectedCode := r.BackendMessage.(*pgproto3.ErrorResponse).Code
+		actualCode := msg.(*pgproto3.ErrorResponse).Code
+		if expectedCode != "" && expectedCode != actualCode {
+			return fmt.Errorf("expected error response with code: %s. got %s", expectedCode, actualCode)
+		}
+	}
+
+	return nil
+}
+
 type Story struct {
 	Frontend *pgproto3.Frontend
 	Steps    []Step
@@ -48,25 +65,10 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 					break
 				}
 			case *Response:
-				expected := step.(*Response).BackendMessage
 				msg, e := s.Frontend.Receive()
 				t.Logf("<<== %#v\n", msg)
-				if e != nil {
-					break
-				}
-				if reflect.TypeOf(msg) != reflect.TypeOf(expected) {
-					e = fmt.Errorf("wrong type of message. expected: %T. got %T", expected, msg)
-					break
-				}
-
-				switch expected.(type) {
-				case *pgproto3.ErrorResponse:
-					expectedCode := expected.(*pgproto3.ErrorResponse).Code
-					actualCode := msg.(*pgproto3.ErrorResponse).Code
-					if expectedCode != "" && expectedCode != actualCode {
-						e = fmt.Errorf("expected error response with code: %s. got %s", expectedCode, actualCode)
-						break
-					}
+				if e == nil {
+					e = step.(*Response).Compare(msg)
 				}
 			}
 			if e != nil {
