@@ -52,26 +52,35 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 
 	success := make(chan bool)
 	errors := make(chan error)
+	responseBuffer := make(chan pgproto3.BackendMessage, 100)
 	timer := time.NewTimer(timeout)
+
+	go func() {
+		for {
+			b, err := s.Frontend.Receive()
+			if err != nil {
+				errors <- err
+			}
+			responseBuffer <- b
+		}
+	}()
 
 	go func() {
 		for _, step := range s.Steps {
 			var e error
 			switch step.(type) {
 			case *Command:
+				if len(responseBuffer) > 0 {
+					e = fmt.Errorf("backend messages exist in buffer")
+					break
+				}
 				msg := step.(*Command).FrontendMessage
 				t.Logf("==>> %#v\n", msg)
 				e = s.Frontend.Send(msg)
-				if e != nil {
-					break
-				}
 			case *Response:
-				var msg pgproto3.BackendMessage
-				msg, e = s.Frontend.Receive()
+				msg := <-responseBuffer
 				t.Logf("<<== %#v\n", msg)
-				if e == nil {
-					e = step.(*Response).Compare(msg)
-				}
+				e = step.(*Response).Compare(msg)
 			}
 			if e != nil {
 				errors <- e
