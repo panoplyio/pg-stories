@@ -25,9 +25,15 @@ type Response struct {
 func (r *Response) Step() {}
 
 func (r *Response) Compare(msg pgproto3.BackendMessage) error {
-	expectedType := r.BackendMessage.Encode([]byte{})[0]
-	actualType := msg.Encode([]byte{})[0]
-	if expectedType != actualType {
+	expectedRaw := r.BackendMessage.Encode([]byte{})
+	actualRaw := msg.Encode([]byte{})
+	if len(expectedRaw) == 0 {
+		return fmt.Errorf("invalid message expected")
+	}
+	if len(actualRaw) == 0 {
+		return fmt.Errorf("invalid message received")
+	}
+	if expectedRaw[0] != actualRaw[0] {
 		return fmt.Errorf("wrong type of message. expected: %T. got %T", r.BackendMessage, msg)
 	}
 
@@ -60,6 +66,7 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 			b, err := s.Frontend.Receive()
 			if err != nil {
 				errors <- err
+				return
 			}
 			responseBuffer <- b
 		}
@@ -86,6 +93,10 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 				errors <- e
 				return
 			}
+		}
+		if len(responseBuffer) > 0 {
+			errors <- fmt.Errorf("backend messages exist in buffer")
+			return
 		}
 		success <- true
 	}()
