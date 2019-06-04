@@ -238,11 +238,10 @@ func TestExtendedSequences(t *testing.T) {
 			Steps: append(
 				startupSeq(),
 				F_P_Parse(OneRowStatement, NamedStmt, []uint32{0}),
-				B_1_ParseComplete,
 				F_B_Bind(NamedStmt, NamedPortal, [][]byte{[]byte("baa")}),
-				B_Z_ReadyForQuery,
 				F_E_Execute(NamedPortal, 0),
 				F_S_Sync,
+				B_1_ParseComplete,
 				B_2_BindComplete,
 				B_D_DataRow,
 				B_C_CommandComplete,
@@ -264,21 +263,6 @@ func TestExtendedSequences(t *testing.T) {
 				F_E_Execute(NamedPortal, 0),
 				F_S_Sync,
 				B_E_ErrorResponse(ErrorInvalidCursorName),
-			),
-		},
-		{
-			Name: "simple query after execute without sync",
-			Steps: append(
-				startupSeq(),
-				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
-				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
-				F_E_Execute(UnnamedPortal, 0),
-				B_1_ParseComplete,
-				B_2_BindComplete,
-				B_D_DataRow,
-				B_C_CommandComplete,
-				B_C_CommandComplete,
-				B_Z_ReadyForQuery,
 			),
 		},
 		{
@@ -308,7 +292,7 @@ func TestExtendedSequences(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = story.Run(t, time.Second*5)
+			err = story.Run(t, time.Second*2)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -154,6 +154,7 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 	case <-success:
 		break
 	case <-timer.C:
+		err = fmt.Errorf("timeout reached")
 		break
 	}
 
