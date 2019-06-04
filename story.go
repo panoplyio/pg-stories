@@ -97,38 +97,49 @@ type Story struct {
 	Steps    []Step
 }
 
-func (s *Story) Run(t *testing.T, timeout time.Duration) error {
+func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 
 	success := make(chan bool)
 	errors := make(chan error)
 	timer := time.NewTimer(timeout)
 
 	go func() {
-		var err error
 		for _, step := range s.Steps {
+			var e error
 			switch step.(type) {
 			case *Command:
 				msg := step.(*Command).FrontendMessage
 				t.Logf("==>> %#v\n", msg)
-				err = s.Frontend.Send(msg)
-				if err != nil {
+				e = s.Frontend.Send(msg)
+				if e != nil {
 					break
 				}
 			case *Response:
 				expected := step.(*Response).BackendMessage
 				var msg pgproto3.BackendMessage
-				msg, err = s.Frontend.Receive()
+				msg, e = s.Frontend.Receive()
 				t.Logf("<<== %#v\n", msg)
-				if err != nil {
+				if e != nil {
 					break
 				}
 				if reflect.TypeOf(msg) != reflect.TypeOf(expected) {
-					err = fmt.Errorf("wrong type of message. expected: %T. got %T", expected, msg)
+					e = fmt.Errorf("wrong type of message. expected: %T. got %T", expected, msg)
 					break
 				}
+
+				switch expected.(type) {
+				case *pgproto3.ErrorResponse:
+					expectedCode := expected.(*pgproto3.ErrorResponse).Code
+					actualCode := msg.(*pgproto3.ErrorResponse).Code
+					if expectedCode != "" && expectedCode != actualCode {
+						e = fmt.Errorf("expected error response with code: %s. got %s", expectedCode, actualCode)
+						break
+					}
+				}
+
 			}
-			if err != nil {
-				errors <- err
+			if e != nil {
+				errors <- e
 				break
 			}
 		}
@@ -137,12 +148,15 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) error {
 	}()
 
 	select {
-	case err := <-errors:
-		return err
+	case e := <-errors:
+		err = e
+		break
 	case <-success:
-		return nil
+		break
 	case <-timer.C:
-		return nil
+		break
 	}
 
+	timer.Stop()
+	return
 }

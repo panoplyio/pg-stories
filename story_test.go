@@ -8,8 +8,17 @@ import (
 )
 
 const (
-	NamedStmt   = "baa"
-	NamedPortal = "baa"
+	UnnamedStmt   = ""
+	UnnamedPortal = ""
+	NamedStmt     = "baa"
+	NamedPortal   = "baa"
+
+	ErrorInvalidSqlStatementName = "26000"
+	ErrorInvalidCursorName       = "34000"
+
+	SimpleQuery     = "SELECT * FROM (VALUES('baa')) t;"
+	OneRowStatement = "SELECT * FROM (VALUES($1)) t;"
+	TwoRowStatement = "SELECT * FROM (VALUES($1), ($1)) t;"
 )
 
 func startupSeq() []Step {
@@ -56,69 +65,54 @@ func initStory(steps []Step) (*Story, error) {
 
 func TestExtendedSequences(t *testing.T) {
 
-	_F_Q_query := &Command{&pgproto3.Query{String: "SELECT * FROM (VALUES('baa')) t;"}}
+	F_Q_Query := func(sql string) *Command {
+		return &Command{&pgproto3.Query{String: sql}}
+	}
 
-	_F_P_parse := &Command{&pgproto3.Parse{
-		Name:          "",
-		ParameterOIDs: []uint32{0},
-		Query:         "SELECT * FROM (VALUES($1)) t;",
-	}}
+	F_P_Parse := func(sql, name string, paramOIDs []uint32) *Command {
+		return &Command{&pgproto3.Parse{
+			Name:          name,
+			ParameterOIDs: paramOIDs,
+			Query:         sql,
+		}}
+	}
 
-	_F_P_parseMultiRow := &Command{&pgproto3.Parse{
-		Name:          "",
-		ParameterOIDs: []uint32{0},
-		Query:         "SELECT * FROM (VALUES($1), ($1)) t;",
-	}}
+	F_B_Bind := func(stmtName, portalName string, values [][]byte) *Command {
+		return &Command{&pgproto3.Bind{
+			DestinationPortal: portalName,
+			Parameters:        values,
+			PreparedStatement: stmtName,
+		}}
+	}
 
-	_F_P_parseNamed := &Command{&pgproto3.Parse{
-		Name:          NamedStmt,
-		ParameterOIDs: []uint32{0},
-		Query:         "SELECT * FROM (VALUES($1)) t;",
-	}}
+	F_E_Execute := func(portalName string, maxRows uint32) *Command {
+		return &Command{&pgproto3.Execute{
+			Portal:  portalName,
+			MaxRows: maxRows,
+		}}
+	}
 
-	_F_B_bind := &Command{&pgproto3.Bind{
-		DestinationPortal: "",
-		Parameters:        [][]byte{[]byte("baa")},
-		PreparedStatement: "",
-	}}
+	B_1_ParseComplete := &Response{&pgproto3.ParseComplete{}}
 
-	_F_B_bindNamedStmt := &Command{&pgproto3.Bind{
-		DestinationPortal: "",
-		Parameters:        [][]byte{[]byte("baa")},
-		PreparedStatement: NamedStmt,
-	}}
+	B_2_BindComplete := &Response{&pgproto3.BindComplete{}}
 
-	_F_B_bindNamedPortal := &Command{&pgproto3.Bind{
-		DestinationPortal: NamedPortal,
-		Parameters:        [][]byte{[]byte("baa")},
-		PreparedStatement: NamedStmt,
-	}}
+	B_Z_ReadyForQuery := &Response{&pgproto3.ReadyForQuery{}}
 
-	_F_E_execute := &Command{&pgproto3.Execute{}}
+	B_T_RowDescription := &Response{&pgproto3.RowDescription{}}
 
-	_F_E_executeSingleRow := &Command{&pgproto3.Execute{MaxRows: 1}}
+	B_D_DataRow := &Response{&pgproto3.DataRow{}}
 
-	_F_E_executeNamed := &Command{&pgproto3.Execute{Portal: NamedPortal}}
+	B_s_portalSuspended := &Response{&pgproto3.PortalSuspended{}}
 
-	_B_1_parseComplete := &Response{&pgproto3.ParseComplete{}}
+	B_C_CommandComplete := &Response{&pgproto3.CommandComplete{}}
 
-	_B_2_bindComplete := &Response{&pgproto3.BindComplete{}}
+	B_E_ErrorResponse := func(code string) *Response {
+		return &Response{&pgproto3.ErrorResponse{Code: code}}
+	}
 
-	_B_Z_readyForQuery := &Response{&pgproto3.ReadyForQuery{}}
+	F_S_Sync := &Command{&pgproto3.Sync{}}
 
-	_B_T_rowDescription := &Response{&pgproto3.RowDescription{}}
-
-	_B_D_dataRow := &Response{&pgproto3.DataRow{}}
-
-	_B_s_portalSuspended := &Response{&pgproto3.PortalSuspended{}}
-
-	_B_C_commandComplete := &Response{&pgproto3.CommandComplete{}}
-
-	_B_E_errorResponse := &Response{&pgproto3.ErrorResponse{}}
-
-	_F_S_sync := &Command{&pgproto3.Sync{}}
-
-	_F_H_flush := &Command{&pgproto3.Flush{}}
+	F_H_flush := &Command{&pgproto3.Flush{}}
 
 	stories := []struct {
 		Name  string
@@ -128,182 +122,182 @@ func TestExtendedSequences(t *testing.T) {
 			Name: "bind after parse",
 			Steps: append(
 				startupSeq(),
-				_F_P_parse,
-				_F_S_sync,
-				_B_1_parseComplete,
-				_B_Z_readyForQuery,
-				_F_B_bind,
-				_F_P_parse,
-				_F_B_bind,
-				_F_E_execute,
-				_F_S_sync,
-				_B_2_bindComplete,
-				_B_1_parseComplete,
-				_B_2_bindComplete,
-				_B_D_dataRow,
-				_B_C_commandComplete,
-				_B_Z_readyForQuery,
+				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
+				F_S_Sync,
+				B_1_ParseComplete,
+				B_Z_ReadyForQuery,
+				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
+				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_E_Execute(UnnamedPortal, 0),
+				F_S_Sync,
+				B_2_BindComplete,
+				B_1_ParseComplete,
+				B_2_BindComplete,
+				B_D_DataRow,
+				B_C_CommandComplete,
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
 			Name: "bind without parse",
 			Steps: append(
 				startupSeq(),
-				_F_B_bind,
-				_F_E_execute,
-				_F_S_sync,
-				_B_E_errorResponse,
+				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_E_Execute(UnnamedPortal, 0),
+				F_S_Sync,
+				B_E_ErrorResponse(ErrorInvalidSqlStatementName),
 			),
 		},
 		{
 			Name: "bind unnamed stmt after sync",
 			Steps: append(
 				startupSeq(),
-				_F_P_parse,
-				_F_S_sync,
-				_B_1_parseComplete,
-				_B_Z_readyForQuery,
-				_F_B_bind,
-				_F_E_execute,
-				_F_S_sync,
-				_B_2_bindComplete,
-				_B_D_dataRow,
-				_B_C_commandComplete,
-				_B_Z_readyForQuery,
+				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
+				F_S_Sync,
+				B_1_ParseComplete,
+				B_Z_ReadyForQuery,
+				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_E_Execute(UnnamedPortal, 0),
+				F_S_Sync,
+				B_2_BindComplete,
+				B_D_DataRow,
+				B_C_CommandComplete,
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
 			Name: "bind after simple query",
 			Steps: append(
 				startupSeq(),
-				_F_P_parse,
-				_F_Q_query,
-				_B_1_parseComplete,
-				_B_T_rowDescription,
-				_B_D_dataRow,
-				_B_C_commandComplete,
-				_B_Z_readyForQuery,
-				_F_B_bind,
-				_F_E_execute,
-				_F_S_sync,
-				_B_E_errorResponse,
+				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
+				F_Q_Query(SimpleQuery),
+				B_1_ParseComplete,
+				B_T_RowDescription,
+				B_D_DataRow,
+				B_C_CommandComplete,
+				B_Z_ReadyForQuery,
+				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_E_Execute(UnnamedPortal, 0),
+				F_S_Sync,
+				B_E_ErrorResponse(ErrorInvalidSqlStatementName),
 			),
 		},
 		{
 			Name: "bind after sync then simple query",
 			Steps: append(
 				startupSeq(),
-				_F_P_parse,
-				_F_S_sync,
-				_B_1_parseComplete,
-				_F_Q_query,
-				_F_B_bind,
-				_F_S_sync,
-				_B_Z_readyForQuery,
+				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
+				F_S_Sync,
+				B_1_ParseComplete,
+				F_Q_Query(SimpleQuery),
+				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_S_Sync,
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
 			Name: "bind unnamed stmt after sync then simple query",
 			Steps: append(
 				startupSeq(),
-				_F_P_parse,
-				_F_Q_query,
-				_B_1_parseComplete,
-				_B_T_rowDescription,
-				_B_D_dataRow,
-				_B_C_commandComplete,
-				_B_Z_readyForQuery,
-				_F_B_bind,
-				_F_E_execute,
-				_F_S_sync,
-				_B_E_errorResponse,
+				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
+				F_Q_Query(SimpleQuery),
+				B_1_ParseComplete,
+				B_T_RowDescription,
+				B_D_DataRow,
+				B_C_CommandComplete,
+				B_Z_ReadyForQuery,
+				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_E_Execute(UnnamedPortal, 0),
+				F_S_Sync,
+				B_E_ErrorResponse(ErrorInvalidSqlStatementName),
 			),
 		},
 		{
 			Name: "bind named stmt after simple query",
 			Steps: append(
 				startupSeq(),
-				_F_P_parseNamed,
-				_F_Q_query,
-				_B_1_parseComplete,
-				_B_T_rowDescription,
-				_B_D_dataRow,
-				_B_C_commandComplete,
-				_B_Z_readyForQuery,
-				_F_B_bindNamedStmt,
-				_F_E_execute,
-				_F_S_sync,
-				_B_2_bindComplete,
-				_B_D_dataRow,
-				_B_C_commandComplete,
-				_B_Z_readyForQuery,
+				F_P_Parse(OneRowStatement, NamedStmt, []uint32{0}),
+				F_Q_Query(SimpleQuery),
+				B_1_ParseComplete,
+				B_T_RowDescription,
+				B_D_DataRow,
+				B_C_CommandComplete,
+				B_Z_ReadyForQuery,
+				F_B_Bind(NamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_E_Execute(UnnamedPortal, 0),
+				F_S_Sync,
+				B_2_BindComplete,
+				B_D_DataRow,
+				B_C_CommandComplete,
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
 			Name: "execute named portal",
 			Steps: append(
 				startupSeq(),
-				_F_P_parseNamed,
-				_F_S_sync,
-				_B_1_parseComplete,
-				_F_B_bindNamedPortal,
-				_F_E_executeNamed,
-				_F_S_sync,
-				_B_2_bindComplete,
-				_B_D_dataRow,
-				_B_C_commandComplete,
-				_B_Z_readyForQuery,
+				F_P_Parse(OneRowStatement, NamedStmt, []uint32{0}),
+				B_1_ParseComplete,
+				F_B_Bind(NamedStmt, NamedPortal, [][]byte{[]byte("baa")}),
+				B_Z_ReadyForQuery,
+				F_E_Execute(NamedPortal, 0),
+				F_S_Sync,
+				B_2_BindComplete,
+				B_D_DataRow,
+				B_C_CommandComplete,
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
 			Name: "execute named portal after sync",
 			Steps: append(
 				startupSeq(),
-				_F_P_parseNamed,
-				_F_S_sync,
-				_B_1_parseComplete,
-				_B_Z_readyForQuery,
-				_F_B_bindNamedPortal,
-				_F_S_sync,
-				_B_2_bindComplete,
-				_B_Z_readyForQuery,
-				_F_E_executeNamed,
-				_F_S_sync,
-				_B_E_errorResponse,
+				F_P_Parse(OneRowStatement, NamedStmt, []uint32{0}),
+				F_S_Sync,
+				B_1_ParseComplete,
+				B_Z_ReadyForQuery,
+				F_B_Bind(NamedStmt, NamedPortal, [][]byte{[]byte("baa")}),
+				F_S_Sync,
+				B_2_BindComplete,
+				B_Z_ReadyForQuery,
+				F_E_Execute(NamedPortal, 0),
+				F_S_Sync,
+				B_E_ErrorResponse(ErrorInvalidCursorName),
 			),
 		},
 		{
 			Name: "simple query after execute without sync",
 			Steps: append(
 				startupSeq(),
-				_F_P_parse,
-				_F_B_bind,
-				_F_E_execute,
-				_B_1_parseComplete,
-				_B_2_bindComplete,
-				_B_D_dataRow,
-				_B_C_commandComplete,
-				_B_C_commandComplete,
-				_B_Z_readyForQuery,
+				F_P_Parse(OneRowStatement, UnnamedStmt, []uint32{0}),
+				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_E_Execute(UnnamedPortal, 0),
+				B_1_ParseComplete,
+				B_2_BindComplete,
+				B_D_DataRow,
+				B_C_CommandComplete,
+				B_C_CommandComplete,
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
 			Name: "multiple executes",
 			Steps: append(
 				startupSeq(),
-				_F_P_parseMultiRow,
-				_F_B_bind,
-				_F_E_executeSingleRow,
-				_F_E_executeSingleRow,
-				_F_H_flush,
-				_F_S_sync,
-				_B_1_parseComplete,
-				_B_2_bindComplete,
-				_B_D_dataRow,
-				_B_s_portalSuspended,
-				_B_D_dataRow,
-				_B_s_portalSuspended,
-				_B_Z_readyForQuery,
+				F_P_Parse(TwoRowStatement, UnnamedStmt, []uint32{0}),
+				F_B_Bind(UnnamedStmt, UnnamedPortal, [][]byte{[]byte("baa")}),
+				F_E_Execute(UnnamedPortal, 1),
+				F_E_Execute(UnnamedPortal, 1),
+				F_H_flush,
+				F_S_Sync,
+				B_1_ParseComplete,
+				B_2_BindComplete,
+				B_D_DataRow,
+				B_s_portalSuspended,
+				B_D_DataRow,
+				B_s_portalSuspended,
+				B_Z_ReadyForQuery,
 			),
 		},
 	}
