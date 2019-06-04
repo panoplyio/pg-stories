@@ -3,7 +3,6 @@ package pg_stories
 import (
 	"fmt"
 	"github.com/jackc/pgx/pgproto3"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -26,7 +25,9 @@ type Response struct {
 func (r *Response) Step() {}
 
 func (r *Response) Compare(msg pgproto3.BackendMessage) error {
-	if reflect.TypeOf(msg) != reflect.TypeOf(r.BackendMessage) {
+	expectedType := r.BackendMessage.Encode([]byte{})[0]
+	actualType := msg.Encode([]byte{})[0]
+	if expectedType != actualType {
 		return fmt.Errorf("wrong type of message. expected: %T. got %T", r.BackendMessage, msg)
 	}
 
@@ -65,7 +66,8 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 					break
 				}
 			case *Response:
-				msg, e := s.Frontend.Receive()
+				var msg pgproto3.BackendMessage
+				msg, e = s.Frontend.Receive()
 				t.Logf("<<== %#v\n", msg)
 				if e == nil {
 					e = step.(*Response).Compare(msg)
