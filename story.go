@@ -49,8 +49,7 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 				}
 			case *Response:
 				expected := step.(*Response).BackendMessage
-				var msg pgproto3.BackendMessage
-				msg, e = s.Frontend.Receive()
+				msg, e := s.Frontend.Receive()
 				t.Logf("<<== %#v\n", msg)
 				if e != nil {
 					break
@@ -72,7 +71,7 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 			}
 			if e != nil {
 				errors <- e
-				break
+				return
 			}
 		}
 		success <- true
