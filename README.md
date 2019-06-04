@@ -26,17 +26,23 @@ A `Step` can be one of:
 Story contains a sequence of `Step` and requires a `Frontend` to run the steps upon.  
 Each step will be either sent to backend or be compared to received message from backend, 
 according to it's type.
-
 ##### Example
 ```go
-&Story{
-	Steps: []Step{
-		&Command{&pgproto3.Query{String: "SELECT 1;"}},
-		&Response{&pgproto3.RowDescription{}},
-		&Response{&pgproto3.DataRow{}},
-		&Response{&pgproto3.CommandComplete{}},
-		&Response{&pgproto3.ReadyForQuery{}},
-	},
-	Frontend: f,
+func TestExample(t *testing.T) {
+    story := &Story{
+        Steps: []Step{
+            &Command{&pgproto3.Query{String: "SELECT 1;"}},
+            &Response{&pgproto3.RowDescription{}},
+            &Response{&pgproto3.DataRow{}},
+            &Response{&pgproto3.CommandComplete{}},
+            &Response{&pgproto3.ReadyForQuery{}},
+        },
+        Frontend: f,
+    }
+    err = story.Run(t, time.Second * 2)
+    if err != nil {
+        t.Fatal(err)
+    }
 }
+
 ```
