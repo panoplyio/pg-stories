@@ -25,73 +25,6 @@ type Response struct {
 
 func (r *Response) Step() {}
 
-//func (s *Step) run(t *testing.T, frontend *pgproto3.Frontend) (err error) {
-//
-//	for _, m := range s.Messages {
-//		t.Logf("==>> %#v\n", m)
-//		err = frontend.Send(m)
-//		if err != nil {
-//			return
-//		}
-//	}
-//
-//	res := make(chan struct{})
-//
-//	timer := time.NewTimer(s.Timeout)
-//
-//	go func() {
-//		for i := range s.Expect {
-//			var msg pgproto3.BackendMessage
-//			msg, err = frontend.Receive()
-//			if err != nil {
-//				break
-//			}
-//			t.Logf("<<== %#v\n", msg)
-//			switch msg.(type) {
-//			case *pgproto3.ErrorResponse:
-//				switch s.Expect[i].(type) {
-//				case *pgproto3.ErrorResponse:
-//					s.Expect[i] = msg
-//				default:
-//					errResp := msg.(*pgproto3.ErrorResponse)
-//					err = fmt.Errorf("error from server: %s (%s)", errResp.Message, errResp.Code)
-//					res <- struct {}{}
-//					return
-//				}
-//			default:
-//				if reflect.TypeOf(msg) == reflect.TypeOf(s.Expect[i]) {
-//					s.Expect[i] = msg
-//				} else {
-//					err = fmt.Errorf("wrong type of message. expected: %T. got %T", s.Expect[i], msg)
-//					res <- struct {}{}
-//					return
-//				}
-//			}
-//		}
-//		res <- struct {}{}
-//		return
-//	}()
-//
-//	select {
-//	case <- res:
-//		close(res)
-//		timer.Stop()
-//		break
-//	case <-timer.C:
-//		err = fmt.Errorf("timeout reached")
-//		close(res)
-//		break
-//	}
-//
-//	if err != nil {
-//		t.Error("Step Error:", err.Error())
-//	} else {
-//		t.Log("==== Step Completed")
-//	}
-//
-//	return
-//}
-
 type Story struct {
 	Frontend *pgproto3.Frontend
 	Steps    []Step
@@ -136,7 +69,6 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 						break
 					}
 				}
-
 			}
 			if e != nil {
 				errors <- e
@@ -144,7 +76,6 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 			}
 		}
 		success <- true
-
 	}()
 
 	select {
