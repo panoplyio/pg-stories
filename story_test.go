@@ -31,20 +31,19 @@ func startupSeq() []Step {
 	return []Step{
 		&Command{&startupMsg},
 		&Response{&pgproto3.Authentication{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
-		&Response{&pgproto3.ParameterStatus{}},
 		&Response{&pgproto3.BackendKeyData{}},
 		&Response{&pgproto3.ReadyForQuery{}},
 	}
+}
+
+func filterStartupMessages(msg pgproto3.BackendMessage) bool {
+	switch msg.(type) {
+	case *pgproto3.ParameterStatus:
+	case *pgproto3.BackendKeyData:
+	case *pgproto3.NotificationResponse:
+		return false
+	}
+	return true
 }
 
 func initStory(steps []Step) (*Story, error) {
@@ -60,6 +59,7 @@ func initStory(steps []Step) (*Story, error) {
 	return &Story{
 		Steps:    steps,
 		Frontend: frontend,
+		Filter:   filterStartupMessages,
 	}, nil
 }
 

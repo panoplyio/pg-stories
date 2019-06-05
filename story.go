@@ -52,6 +52,7 @@ func (r *Response) Compare(msg pgproto3.BackendMessage) error {
 type Story struct {
 	Frontend *pgproto3.Frontend
 	Steps    []Step
+	Filter   func(pgproto3.BackendMessage) bool
 }
 
 func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
@@ -68,7 +69,9 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 				errors <- err
 				return
 			}
-			responseBuffer <- b
+			if s.Filter == nil || s.Filter(b) {
+				responseBuffer <- b
+			}
 		}
 	}()
 
