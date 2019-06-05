@@ -175,10 +175,39 @@ func TestBuilder_ParseNext(t *testing.T) {
 			case *pgproto3.Execute:
 				msg := cmd.FrontendMessage.(*pgproto3.Execute)
 				if msg.Portal != "portal_name" {
-					t.Fatalf("expected stmt name to be 'portal_name'. actual: %s", msg.Portal)
+					t.Fatalf("expected portal name to be 'portal_name'. actual: %s", msg.Portal)
 				}
 				if msg.MaxRows != 10 {
 					t.Fatalf("expected max rows to be 10. actual: %d", msg.MaxRows)
+				}
+			default:
+				t.Fatalf("expected first step to be a command of type %T. actual: %T", &pgproto3.Query{}, cmd.FrontendMessage)
+			}
+		default:
+			t.Fatalf("expected first step to be a command. actual: %T", story.Steps[0])
+		}
+	})
+
+	t.Run("test describe", func(t *testing.T) {
+		builder := createBuilder(t.Name(), `-> D S "baa"`)
+		story, _, err := builder.ParseNext()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if story == nil {
+			t.Fatal("story is nil")
+		}
+		switch story.Steps[0].(type) {
+		case *Command:
+			cmd := story.Steps[0].(*Command)
+			switch cmd.FrontendMessage.(type) {
+			case *pgproto3.Describe:
+				msg := cmd.FrontendMessage.(*pgproto3.Describe)
+				if msg.ObjectType != 'S' {
+					t.Fatalf("expected object type be 'S'. actual: %c", msg.ObjectType)
+				}
+				if msg.Name != "baa" {
+					t.Fatalf("expected stmt name to be 'baa'. actual: %s", msg.Name)
 				}
 			default:
 				t.Fatalf("expected first step to be a command of type %T. actual: %T", &pgproto3.Query{}, cmd.FrontendMessage)

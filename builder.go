@@ -33,11 +33,11 @@ func (e *InvalidArgCountError) Error() string {
 	return fmt.Sprintf("invalid argument count for message of type: %c", e.msgType)
 }
 
-type InvalidArgFormatError struct {
+type InvalidArgError struct {
 	msgType byte
 }
 
-func (e *InvalidArgFormatError) Error() string {
+func (e *InvalidArgError) Error() string {
 	return fmt.Sprintf("invalid argument in message of type: %c", e.msgType)
 }
 
@@ -185,7 +185,18 @@ func (b *Builder) parseCommand(msgType byte, parser *tokenParser) (*Command, err
 	case 'C':
 		msg = &pgproto3.Close{}
 	case 'D':
-		msg = &pgproto3.Describe{}
+		t, err := parser.readToken(0, ' ')
+		if err != nil {
+			return nil, err
+		}
+		if t != "S" && t != "P" {
+			return nil, &InvalidArgError{}
+		}
+		name, err := parser.readToken(TokenDelimiterString, TokenDelimiterString)
+		if err != nil && err.Error() != "EOF" {
+			return nil, err
+		}
+		msg = &pgproto3.Describe{Name: name, ObjectType: t[0]}
 	case 'E':
 		portal, err := parser.readToken(TokenDelimiterString, TokenDelimiterString)
 		if err != nil {
@@ -224,7 +235,7 @@ func (b *Builder) parseCommand(msgType byte, parser *tokenParser) (*Command, err
 			for _, p := range strings.Split(params, ",") {
 				i, err := strconv.ParseUint(p, 10, 32)
 				if err != nil {
-					return nil, &InvalidArgFormatError{msgType: msgType}
+					return nil, &InvalidArgError{msgType: msgType}
 				}
 				parse.ParameterOIDs = append(parse.ParameterOIDs, uint32(i))
 			}

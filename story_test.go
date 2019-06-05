@@ -307,6 +307,7 @@ func TestExtendedSequences(t *testing.T) {
 				B_C_CommandComplete,
 				B_Z_ReadyForQuery,
 				B_E_ErrorResponse("26000"),
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
