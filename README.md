@@ -52,3 +52,65 @@ func TestExample(t *testing.T) {
     }
 }
 ```
+
+### Story Transcript (WIP)
+You can also define stories using simple text files. Currently all backend and frontend messages
+that don't require parameters are working and some are supporting parameters.
+##### Notes  
+- Each line of the file can contain only one step, start order or end order
+#### DSL
+###### Story
+- `=== $1`  
+   Signals start of story.  
+   **Params**
+   1. The name / description of the story. Will be returned from the parser.
+- `===`  
+   Signals end of story.
+###### Step
+Each line that define a step **must** start with either `->` for command (frontend message) 
+or `<-` for response (backend message)  
+Responses not yet accepting values so you can define them as expected response 
+and they will be evaluated without checking returned values.
+  
+__Commands__:
+- `-> Q "$1"` - (Query)  
+   **Params**  
+   1. Query string.  
+   **Example**  
+   `Q "SELECT 1;"`
+- `-> P "$1" "$2" [$3]` - (Parse)    
+   **Params**  
+   1. Destination prepared statement name. Empty string defines unnamed statement.
+   2. Query string.
+   3. Comma separated parameter OIDs  
+   **Example**  
+   `-> P "stmt1" "SELECT * FROM (VALUES($1),($2)) t;" [0,2]`
+- `-> B "$1" "$2" [$3]` - (Bind)  
+  **Params**
+  1. Destination portal name. Empty string defines unnamed portal.
+  2. Source prepared statement. Empty string targets unnamed statement.
+  3. Comma separated parameter values  
+  **Example**  
+  `-> B "portal1" "stmt1" [1,"foo"]`
+- `-> D $1 "$2"` - (Describe)  
+    **Params**
+    1. Object type. Can be either `S` for statement or `P` for portal.
+    2. Name of the Object  
+    **Example**
+    `-> D S "stmt1"`  
+ - `-> E "$1" $2` - (Execute)  
+    **Params**  
+    1. Portal name. Empty string targets unnamed portal.
+    2. Max rows. 0 for unlimited.
+ - `-> S` - (Sync)
+ - `-> H` - (Flush)
+ 
+ __Responses__:  
+ - `<- 1` - (ParseComplete)
+ - `<- 2` - (BindComplete)
+ - `<- C` - (CommandComplete)
+ - `<- T` - (RowDescription)
+ - `<- t` - (ParameterDescription)
+ - `<- D` - (DataRow)
+ - `<- E` - (ErrorResponse)
+ - `<- Z` - (ReadyForQuery)
