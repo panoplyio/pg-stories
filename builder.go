@@ -318,7 +318,7 @@ func (b *Builder) ParseNext() (story *Story, name string, err error) {
 			story = &Story{Steps: b.startupSeq}
 			continue
 		}
-		if line[:3] == TokenStoryDelimiter {
+		if len(line) == 3 && line == TokenStoryDelimiter {
 			if len(story.Steps) == 0 {
 				err = &EmptyStoryError{}
 				return
