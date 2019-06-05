@@ -39,10 +39,16 @@ func TestExample(t *testing.T) {
         },
         Frontend: f,
     }
-    err = story.Run(t, time.Second * 2)
+    sigKill := make(chan interface{})
+    timer := time.NewTimer(time.Second * 2)
+    go func() {
+        <-timer.C
+        sigKill <- fmt.Errorf("timeout")
+    }()
+    err = story.Run(t, sigKill)
     if err != nil {
+    	timer.Stop()
         t.Fatal(err)
     }
 }
-
 ```
