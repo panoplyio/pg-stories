@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/pgproto3"
 	"testing"
-	"time"
 )
 
 type Step interface {
@@ -55,12 +54,11 @@ type Story struct {
 	Filter   func(pgproto3.BackendMessage) bool
 }
 
-func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
+func (s *Story) Run(t *testing.T, c <-chan interface{}) (err error) {
 
 	success := make(chan bool)
 	errors := make(chan error)
 	responseBuffer := make(chan pgproto3.BackendMessage, 100)
-	timer := time.NewTimer(timeout)
 
 	go func() {
 		for {
@@ -110,11 +108,10 @@ func (s *Story) Run(t *testing.T, timeout time.Duration) (err error) {
 		break
 	case <-success:
 		break
-	case <-timer.C:
-		err = fmt.Errorf("timeout reached")
+	case v := <-c:
+		err = fmt.Errorf("received stop signal %#v", v)
 		break
 	}
 
-	timer.Stop()
 	return
 }

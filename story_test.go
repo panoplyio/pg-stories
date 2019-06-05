@@ -31,7 +31,6 @@ func startupSeq() []Step {
 	return []Step{
 		&Command{&startupMsg},
 		&Response{&pgproto3.Authentication{}},
-		&Response{&pgproto3.BackendKeyData{}},
 		&Response{&pgproto3.ReadyForQuery{}},
 	}
 }
@@ -39,7 +38,9 @@ func startupSeq() []Step {
 func filterStartupMessages(msg pgproto3.BackendMessage) bool {
 	switch msg.(type) {
 	case *pgproto3.ParameterStatus:
+		return false
 	case *pgproto3.BackendKeyData:
+		return false
 	case *pgproto3.NotificationResponse:
 		return false
 	}
@@ -184,6 +185,7 @@ func TestExtendedSequences(t *testing.T) {
 				F_E_Execute(UnnamedPortal, 0),
 				F_S_Sync,
 				B_E_ErrorResponse("34000"),
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
@@ -251,6 +253,7 @@ func TestExtendedSequences(t *testing.T) {
 				F_E_Execute(UnnamedPortal, 0),
 				F_S_Sync,
 				B_E_ErrorResponse(ErrorInvalidSqlStatementName),
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
@@ -285,6 +288,7 @@ func TestExtendedSequences(t *testing.T) {
 				F_E_Execute(UnnamedPortal, 0),
 				F_S_Sync,
 				B_E_ErrorResponse(ErrorInvalidSqlStatementName),
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
@@ -302,6 +306,7 @@ func TestExtendedSequences(t *testing.T) {
 				B_D_DataRow,
 				B_C_CommandComplete,
 				B_Z_ReadyForQuery,
+				B_E_ErrorResponse("26000"),
 			),
 		},
 		{
@@ -319,6 +324,7 @@ func TestExtendedSequences(t *testing.T) {
 				F_E_Execute(UnnamedPortal, 0),
 				F_S_Sync,
 				B_E_ErrorResponse(ErrorInvalidSqlStatementName),
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
@@ -374,6 +380,7 @@ func TestExtendedSequences(t *testing.T) {
 				F_E_Execute(NamedPortal, 0),
 				F_S_Sync,
 				B_E_ErrorResponse(ErrorInvalidCursorName),
+				B_Z_ReadyForQuery,
 			),
 		},
 		{
@@ -403,7 +410,14 @@ func TestExtendedSequences(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = story.Run(t, time.Second*2)
+			sigKill := make(chan interface{})
+			timer := time.NewTimer(time.Second * 2)
+			go func() {
+				t := <-timer.C
+				sigKill <- t
+			}()
+			err = story.Run(t, sigKill)
+			timer.Stop()
 			if err != nil {
 				t.Fatal(err)
 			}
