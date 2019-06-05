@@ -59,14 +59,14 @@ that don't require parameters are working and some are supporting parameters.
 ##### Notes  
 - Each line of the file can contain only one step, start order or end order
 #### DSL
-###### Story
+##### Story
 - `=== $1`  
    Signals start of story.  
    **Params**
    1. The name / description of the story. Will be returned from the parser.
 - `===`  
    Signals end of story.
-###### Step
+##### Step
 Each line that define a step **must** start with either `->` for command (frontend message) 
 or `<-` for response (backend message)  
 Responses not yet accepting values so you can define them as expected response 
