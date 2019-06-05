@@ -91,7 +91,7 @@ __Commands__:
   2. Source prepared statement. Empty string targets unnamed statement.
   3. Comma separated parameter values  
   **Example**  
-  `-> B "portal1" "stmt1" [1,"foo"]`
+  `-> B "portal1" "stmt1" [1,foo]`
 - `-> D $1 "$2"` - (Describe)  
     **Params**
     1. Object type. Can be either `S` for statement or `P` for portal.
@@ -114,3 +114,18 @@ __Commands__:
  - `<- D` - (DataRow)
  - `<- E` - (ErrorResponse)
  - `<- Z` - (ReadyForQuery)
+ 
+ __Full Example__:
+ ```
+ === execute named portal
+-> P "stmt_name" "SELECT * FROM (VALUES($1))" [0]
+-> B "portal_name" "stmt_name" [foo]
+-> E "portal_name" 0
+-> S
+<- 1
+<- 2
+<- D
+<- C
+<- Z
+===
+```
