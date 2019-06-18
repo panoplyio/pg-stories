@@ -39,10 +39,9 @@ func completer(in prompt.Document) []prompt.Suggest {
 
 	if len(in.Text) > 1 && in.Text[1] == ' ' {
 		if v, ok := commandCompletions[in.Text[0:1]]; ok {
-			submatches := findWordsPattern.FindAllStringSubmatch(in.Text, -1)
-			fmt.Println(submatches)
-			if len(v.suggestions) >= len(submatches) {
-				return v.suggestions[len(submatches)-1]
+			matches := findWordsPattern.FindAllStringSubmatch(in.Text, -1)
+			if len(v.suggestions) >= len(matches) {
+				return v.suggestions[len(matches)-1]
 			}
 		}
 		return nil
