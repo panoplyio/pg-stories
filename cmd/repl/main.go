@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/c-bata/go-prompt"
 	"github.com/jackc/pgx/pgproto3"
@@ -126,8 +127,11 @@ func executor(in string) {
 }
 
 func main() {
+	addr := flag.String("addr", "127.0.0.1:5432", "Postgres Server Address")
+	flag.Parse()
+
 	var err error
-	conn, err = net.Dial("tcp", "127.0.0.1:5432")
+	conn, err = net.Dial("tcp", *addr)
 	if err != nil {
 		panic(err)
 	}
