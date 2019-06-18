@@ -21,17 +21,20 @@ var commandCompletions = map[string]struct {
 	suggestions [][]prompt.Suggest
 }{
 	"P": {Command: &pgproto3.Parse{}, suggestions: [][]prompt.Suggest{
-		{{Text: "\"\"", Description: "Destination Statement Name"}},
-		{{Text: "\"\"", Description: "Query Text"}},
+		{{Text: `""`, Description: "Destination Statement Name"}},
+		{{Text: `""`, Description: "Query Text"}},
 		{{Text: "[]", Description: "Parameters"}},
 	}},
 	"B": {Command: &pgproto3.Parse{}, suggestions: [][]prompt.Suggest{
-		{{Text: "\"\"", Description: "Destination Portal Name"}},
-		{{Text: "\"\"", Description: "Source Statement Name"}},
+		{{Text: `""`, Description: "Destination Portal Name"}},
+		{{Text: `""`, Description: "Source Statement Name"}},
 		{{Text: "[]", Description: "Parameters"}},
 	}},
 	"Q": {Command: &pgproto3.Parse{}, suggestions: [][]prompt.Suggest{
-		{{Text: "\"\"", Description: "Query Text"}},
+		{{Text: `""`, Description: "Query Text"}},
+	}},
+	"D": {Command: &pgproto3.Parse{}, suggestions: [][]prompt.Suggest{
+		{{Text: "S", Description: "Statement"}, {Text: "P", Description: "Portal"}},
 	}},
 }
 
@@ -50,6 +53,7 @@ func completer(in prompt.Document) []prompt.Suggest {
 	s := []prompt.Suggest{
 		{Text: "B", Description: "Bind"},
 		{Text: "P", Description: "Parse"},
+		{Text: "D", Description: "Describe"},
 		{Text: "Q", Description: "Query"},
 		{Text: "S", Description: "Sync"},
 	}
