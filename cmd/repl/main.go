@@ -35,6 +35,7 @@ var commandCompletions = map[string]struct {
 	}},
 	"D": {Command: &pgproto3.Parse{}, suggestions: [][]prompt.Suggest{
 		{{Text: "S", Description: "Statement"}, {Text: "P", Description: "Portal"}},
+		{{Text: `""`, Description: "Object Name"}},
 	}},
 }
 
