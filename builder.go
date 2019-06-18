@@ -171,14 +171,16 @@ func (b *Builder) parseCommand(msgType byte, parser *tokenParser) (*Command, err
 		if err != nil {
 			return nil, err
 		}
-		for _, p := range strings.Split(params, ",") {
-			i, err := strconv.ParseFloat(p, 64)
-			if err != nil {
-				bind.Parameters = append(bind.Parameters, []byte(p))
-			} else {
-				buf := make([]byte, 8)
-				binary.LittleEndian.PutUint64(buf, math.Float64bits(i))
-				bind.Parameters = append(bind.Parameters, buf)
+		if params != "" {
+			for _, p := range strings.Split(params, ",") {
+				i, err := strconv.ParseFloat(p, 64)
+				if err != nil {
+					bind.Parameters = append(bind.Parameters, []byte(p))
+				} else {
+					buf := make([]byte, 8)
+					binary.LittleEndian.PutUint64(buf, math.Float64bits(i))
+					bind.Parameters = append(bind.Parameters, buf)
+				}
 			}
 		}
 		msg = &bind
@@ -258,6 +260,10 @@ func (b *Builder) parseCommand(msgType byte, parser *tokenParser) (*Command, err
 	}
 
 	return &Command{FrontendMessage: msg}, nil
+}
+
+func (b *Builder) ParseNextStep(txt string) (Step, error) {
+	return b.parseStep(txt)
 }
 
 func (b *Builder) parseStep(txt string) (Step, error) {
