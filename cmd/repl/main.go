@@ -63,12 +63,12 @@ func completer(in prompt.Document) []prompt.Suggest {
 	return prompt.FilterHasPrefix(s, in.GetWordBeforeCursor(), true)
 }
 
-func startupSeq() []pgstories.Step {
+func startupSeq(user string) []pgstories.Step {
 	startupMsg := pgproto3.StartupMessage{
 		ProtocolVersion: pgproto3.ProtocolVersionNumber,
 		Parameters:      make(map[string]string),
 	}
-	startupMsg.Parameters["user"] = "postgres"
+	startupMsg.Parameters["user"] = user
 
 	return []pgstories.Step{
 		&pgstories.Command{FrontendMessage: &startupMsg},
@@ -100,7 +100,7 @@ func executor(in string) {
 	switch step.(type) {
 	case *pgstories.Command:
 		switch step.(*pgstories.Command).FrontendMessage.(type) {
-		case *pgproto3.Parse, *pgproto3.Bind, *pgproto3.Describe:
+		case *pgproto3.Parse, *pgproto3.Bind, *pgproto3.Describe, *pgproto3.Execute:
 		default:
 			steps = append(steps, &pgstories.Response{BackendMessage: &pgproto3.ReadyForQuery{}})
 		}
@@ -128,6 +128,7 @@ func executor(in string) {
 
 func main() {
 	addr := flag.String("addr", "127.0.0.1:5432", "Postgres Server Address")
+	user := flag.String("user", "postgres", "Postgres Server User")
 	flag.Parse()
 
 	var err error
@@ -139,7 +140,7 @@ func main() {
 	fmt.Println("connecting...")
 
 	err = (&pgstories.Story{
-		Steps: startupSeq(),
+		Steps: startupSeq(*user),
 		Filter: func(message pgproto3.BackendMessage) bool {
 			switch message.(type) {
 			case *pgproto3.ReadyForQuery, *pgproto3.Authentication:
