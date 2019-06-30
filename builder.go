@@ -2,11 +2,9 @@ package pg_stories
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"github.com/jackc/pgx/pgproto3"
 	"io"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -173,14 +171,7 @@ func (b *Builder) parseCommand(msgType byte, parser *tokenParser) (*Command, err
 		}
 		if params != "" {
 			for _, p := range strings.Split(params, ",") {
-				i, err := strconv.ParseFloat(p, 64)
-				if err != nil {
-					bind.Parameters = append(bind.Parameters, []byte(p))
-				} else {
-					buf := make([]byte, 8)
-					binary.LittleEndian.PutUint64(buf, math.Float64bits(i))
-					bind.Parameters = append(bind.Parameters, buf)
-				}
+				bind.Parameters = append(bind.Parameters, []byte(p))
 			}
 		}
 		msg = &bind
