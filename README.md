@@ -1,7 +1,7 @@
 # pg-stories
 
 The purpose of this package is to create readable scenarios that will run against backend implementation of the postgres protocol version 3.0.
-It is heavily dependant on the great [jackc/pgx](https://github.com/jackc/pgx) package.
+It is heavily dependent on the great [jackc/pgx](https://github.com/jackc/pgx) package.
 
 ### Main Concepts
 
@@ -73,37 +73,54 @@ Responses not yet accepting values so you can define them as expected response
 and they will be evaluated without checking returned values.
   
 __Commands__:
-- `-> Q "$1"` - (Query)  
-   **Params**  
-   1. Query string.  
-   **Example**  
+#### Query:
+`-> Q "$1"`  
+   Params 
+   - `$1` - Query string.  
+   
+   Example  
    `Q "SELECT 1;"`
-- `-> P "$1" "$2" [$3]` - (Parse)    
-   **Params**  
-   1. Destination prepared statement name. Empty string defines unnamed statement.
-   2. Query string.
-   3. Comma separated parameter OIDs  
-   **Example**  
+   
+#### Parse
+`-> P "$1" "$2" [$3]`    
+   Params  
+   - `$1` Destination prepared statement name. Empty string defines unnamed statement.  
+   - `$2` Query string.  
+   - `$3` Comma separated parameter OIDs  
+   
+   Example  
    `-> P "stmt1" "SELECT * FROM (VALUES($1),($2)) t;" [0,2]`
-- `-> B "$1" "$2" [$3]` - (Bind)  
-  **Params**
-  1. Destination portal name. Empty string defines unnamed portal.
-  2. Source prepared statement. Empty string targets unnamed statement.
-  3. Comma separated parameter values  
-  **Example**  
-  `-> B "portal1" "stmt1" [1,foo]`
-- `-> D $1 "$2"` - (Describe)  
-    **Params**
-    1. Object type. Can be either `S` for statement or `P` for portal.
-    2. Name of the Object  
-    **Example**
-    `-> D S "stmt1"`  
- - `-> E "$1" $2` - (Execute)  
-    **Params**  
-    1. Portal name. Empty string targets unnamed portal.
-    2. Max rows. 0 for unlimited.
- - `-> S` - (Sync)
- - `-> H` - (Flush)
+   
+#### Bind
+`-> B "$1" "$2" [$3]`  
+  Params
+  - `$1` Destination portal name. Empty string defines unnamed portal.  
+  - `$2` Source prepared statement. Empty string targets unnamed statement.  
+  - `$3` Comma separated parameter values  
+  
+  Example  
+  `-> B "portal1" "stmt1" [1,foo]`  
+  
+#### Describe
+`-> D $1 "$2"`  
+   Params
+   - `$1` Object type. Can be either `S` for statement or `P` for portal.
+   - `$2` Name of the Object
+      
+   Example  
+   `-> D S "stmt1"`
+      
+#### Execute
+`-> E "$1" $2`  
+    Params  
+    - `$1` Portal name. Empty string targets unnamed portal.
+    - `$2` Max rows. 0 for unlimited.
+
+#### Sync
+`-> S`
+
+#### Flush
+`-> H`
  
  __Responses__:  
  - `<- 1` - (ParseComplete)
