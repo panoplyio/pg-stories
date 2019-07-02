@@ -1,7 +1,7 @@
 # pg-stories
 
 The purpose of this package is to create readable scenarios that will run against backend implementation of the postgres protocol version 3.0.
-It is heavily dependant on the great [jackc/pgx](https://github.com/jackc/pgx) package.
+It is heavily dependent on the great [jackc/pgx](https://github.com/jackc/pgx) package.
 
 ### Main Concepts
 
